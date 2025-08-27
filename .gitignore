@@ -1,0 +1,41 @@
+# Docker
+docker-compose.override.yml
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backend Symfony
+backend/vendor/
+backend/.env.local
+backend/.env.local.php
+backend/.env.*.local
+backend/var/
+backend/.phpunit.result.cache
+backend/composer.phar
+
+# Frontend React
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Logs
+*.log
+
+# Database
+*.sqlite
+*.sqlite3
