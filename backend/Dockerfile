@@ -21,10 +21,6 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Configuration du répertoire de travail
 WORKDIR /var/www/html
 
-# Copie du script d'attente
-COPY wait-for-db.sh /usr/local/bin/wait-for-db.sh
-RUN chmod +x /usr/local/bin/wait-for-db.sh
-
 # Copie des fichiers de configuration Composer
 COPY composer.json composer.lock* ./
 
@@ -39,8 +35,9 @@ RUN composer dump-autoload --optimize || echo "Autoload non nécessaire"
 
 # Permissions
 RUN chmod -R 755 /var/www/html
+RUN chmod +x /var/www/html/entrypoint.sh
 
 EXPOSE 8000
 
-# Démarrage avec attente de la DB
-CMD ["/usr/local/bin/wait-for-db.sh"]
+# Démarrage avec attente de la DB (utilise le script dans le répertoire de travail)
+CMD ["/var/www/html/entrypoint.sh"]
