@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libpq-dev \
-    postgresql-client
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 
 # Installation des extensions PHP
 RUN docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
@@ -24,20 +25,31 @@ WORKDIR /var/www/html
 # Copie des fichiers de configuration Composer
 COPY composer.json composer.lock* ./
 
-# Installation des dépendances PHP
-RUN composer install --no-scripts --no-autoloader || echo "Pas de dépendances composer"
+# Installation des dépendances PHP avec optimisations
+RUN composer install \
+    --no-dev \
+    --no-scripts \
+    --no-autoloader \
+    --optimize-autoloader \
+    --prefer-dist \
+    --no-interaction
 
 # Copie du code source
 COPY . .
 
 # Finalisation de l'installation Composer
-RUN composer dump-autoload --optimize || echo "Autoload non nécessaire"
+RUN composer dump-autoload --optimize \
+    && composer run-script --no-dev post-install-cmd || true
 
-# Permissions
-RUN chmod -R 755 /var/www/html
-RUN chmod +x /var/www/html/entrypoint.sh
+# Configuration des permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
+    && chmod +x /var/www/html/entrypoint.sh
+
+# Utilisation de l'utilisateur www-data pour plus de sécurité
+USER www-data
 
 EXPOSE 8000
 
-# Démarrage avec attente de la DB (utilise le script dans le répertoire de travail)
+# Script de démarrage simplifié
 CMD ["/var/www/html/entrypoint.sh"]

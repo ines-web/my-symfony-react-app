@@ -1,29 +1,23 @@
 #!/bin/bash
 set -e
 
-echo "Configuration des permissions..."
-chmod +x /var/www/html/wait-for-db.sh 2>/dev/null || true
+echo "Démarrage du conteneur Symfony..."
 
-echo "Installation des dépendances Composer..."
-cd /var/www/html
-
-# Vérifier si composer.json existe
-if [ -f "composer.json" ]; then
-    echo "Installation en cours..."
-    composer install --no-interaction --optimize-autoloader
-
-    # Générer l'autoload si nécessaire
-    composer dump-autoload --optimize
-else
-    echo "Erreur: composer.json non trouvé dans /var/www/html"
-    exit 1
-fi
-
+# Attente de la base de données uniquement
 echo "Attente de la base de données..."
 until pg_isready -h db -p 5432 -U catalog 2>/dev/null; do
   echo "En attente de la base de données..."
   sleep 2
 done
 
-echo "Base de données prête! Démarrage de Symfony..."
+echo "Base de données prête!"
+
+# Migrations Doctrine si nécessaire (optionnel)
+if [ "$APP_ENV" = "dev" ]; then
+    echo "Exécution des migrations en mode développement..."
+    php bin/console doctrine:migrations:migrate --no-interaction || true
+fi
+
+# Démarrage du serveur Symfony
+echo "Démarrage de Symfony sur le port 8000..."
 exec php -S 0.0.0.0:8000 -t public
