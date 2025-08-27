@@ -27,13 +27,17 @@ php bin/console about 2>/dev/null || echo "   Console Symfony prête"
 echo "🗄️  Configuration de la base de données..."
 php bin/console doctrine:database:create --if-not-exists --no-interaction
 
-# Mise à jour du schéma de base
-echo "📊 Mise à jour du schéma..."
-php bin/console doctrine:schema:update --force --no-interaction 2>/dev/null || echo "   Schéma à jour"
+# Création de la migration basée sur les entités existantes
+echo "📝 Création de la migration depuis les entités..."
+php bin/console make:migration --no-interaction 2>/dev/null || echo "   Aucune nouvelle migration nécessaire"
 
-# Migrations si disponibles
+# Exécution des migrations
 echo "🔄 Exécution des migrations..."
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+# Vérification alternative : mise à jour du schéma si les migrations échouent
+echo "📊 Vérification du schéma de base de données..."
+php bin/console doctrine:schema:update --force --no-interaction 2>/dev/null || echo "   Schéma à jour"
 
 # Nettoyage et réchauffement du cache
 echo "🧹 Optimisation du cache..."
