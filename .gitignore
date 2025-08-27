@@ -24,7 +24,7 @@ backend/composer.phar
 
 # Frontend React
 frontend/node_modules/
-frontend/build/
+frontend/
 frontend/.env.local
 frontend/.env.development.local
 frontend/.env.test.local
