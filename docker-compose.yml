@@ -1,20 +1,26 @@
 services:
   # Base de données PostgreSQL
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: catalog_db
     environment:
       POSTGRES_DB: catalog
       POSTGRES_USER: catalog
       POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=fr_FR.UTF-8 --lc-ctype=fr_FR.UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Backend Symfony
+  # Backend Symfony 7.1
   backend:
     build:
       context: ./backend
@@ -22,11 +28,14 @@ services:
     container_name: catalog_backend
     volumes:
       - ./backend:/var/www/html
+      - /var/www/html/vendor
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
+      - APP_ENV=dev
       - DATABASE_URL=postgresql://catalog:password@db:5432/catalog
     networks:
       - app-network
@@ -44,6 +53,7 @@ services:
       - "3000:3000"
     environment:
       - WATCHPACK_POLLING=true
+      - REACT_APP_API_URL=http://localhost:8000
     networks:
       - app-network
 

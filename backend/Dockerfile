@@ -1,55 +1,61 @@
+
 FROM php:8.2-cli
 
 # Installation des dépendances système
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
     zip \
     unzip \
     libpq-dev \
     postgresql-client \
+    libxml2-dev \
+    libonig-dev \
+    libicu-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Installation des extensions PHP
-RUN docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
+# Installation des extensions PHP nécessaires
+RUN docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    mbstring \
+    xml \
+    intl \
+    opcache
+
+# Configuration d'OPcache optimisée
+RUN { \
+        echo 'opcache.enable=1'; \
+        echo 'opcache.memory_consumption=512'; \
+        echo 'opcache.max_accelerated_files=20000'; \
+        echo 'opcache.validate_timestamps=1'; \
+        echo 'opcache.revalidate_freq=0'; \
+    } > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
 # Installation de Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configuration du répertoire de travail
 WORKDIR /var/www/html
 
-# Copie des fichiers de configuration Composer
-COPY composer.json composer.lock* ./
+# Variables d'environnement pour Composer
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_NO_INTERACTION=1
 
-# Installation des dépendances PHP avec optimisations
-RUN composer install \
-    --no-dev \
-    --no-scripts \
-    --no-autoloader \
-    --optimize-autoloader \
-    --prefer-dist \
-    --no-interaction
+# SOLUTION: Ne copier QUE composer.json (pas le .lock)
+COPY composer.json ./
 
-# Copie du code source
+# Générer un nouveau composer.lock avec les bonnes versions
+RUN composer update --no-scripts --no-autoloader
+
+# Copier le reste du code
 COPY . .
 
-# Finalisation de l'installation Composer
-RUN composer dump-autoload --optimize \
-    && composer run-script --no-dev post-install-cmd || true
+# Installation finale optimisée
+RUN composer dump-autoload --optimize
 
 # Configuration des permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
-    && chmod +x /var/www/html/entrypoint.sh
-
-# Utilisation de l'utilisateur www-data pour plus de sécurité
-USER www-data
+RUN chmod +x ./entrypoint.sh
 
 EXPOSE 8000
 
-# Script de démarrage simplifié
-CMD ["/var/www/html/entrypoint.sh"]
+CMD ["./entrypoint.sh"]
